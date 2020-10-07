@@ -12,9 +12,10 @@ int main(){
     // since in the given problem array can be real numbers instead of just integers, we need to take
     // an array of double
     double A[n];
-    for(int i=0; i < n; i++){
-        cin >> A[i];
-    }
+	//removing due to diff stream
+//     for(int i=0; i < n; i++){
+//         cin >> A[i];
+//     }
 	// left_idx keeps track of the lower index of the subarray whose value is added into 'sum' currently
 	// ans_lower_idx keeps track of the lower index of subarray whose value is added into 'maxi' currently
 	// ans_higher_idx keeps track of the lower index of subarray whose value is added into 'maxi' currently
@@ -33,6 +34,8 @@ int main(){
         if( sum < 0){
             sum = 0;
             left_idx = i + 1;
+	    // this is needed to break the loop for better performance   
+	    i++;
         }
     }
 
