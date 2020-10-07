@@ -1,143 +1,138 @@
-#include <bits/stdc++.h>
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,avx2,fma")
+#pragma GCC optimize("unroll-loops")
+#include<bits/stdc++.h>
+#define int long long
+#define mp make_pair
 using namespace std;
-#define m_p make_pair
-#define all(x) (x).begin(),(x).end()
-#define sz(x) ((int)(x).size())
-#define fi first
-#define se second
-typedef long long ll;
-mt19937 rnd(chrono::steady_clock::now().time_since_epoch().count());
-mt19937 rnf(2106);
-const int N = 102, K = 13;
-
-int n, k;
-pair<pair<int, int>, int> b[N];
-
-vector<pair<int, int> > g[N];
-
-int dp[N][N];
-int q[N];
-int ndp[N];
-
-bool c[N];
-void dfs(int x, int p, int u)
+const int N=105;
+//https://csacademy.com/blog/fast-fourier-transform-and-variations-of-it
+//https://codeforces.com/blog/entry/71899
+void fwht(vector<int>&a,int n)
 {
-    q[x] = 1;
-    dp[x][0] = 0;
-    dp[x][1] = 1;
-    for (int i = 0; i < g[x].size(); ++i)
+    for(int len=2;len<=n;len<<=1)
     {
-        int h = g[x][i].fi;
-        if (h == p)
+        for(int i=0;i<n;i+=len)
+        {
+            for(int j=0;j<(len/2);j++)
+            {
+                a[i+j+(len/2)] += a[i+j];
+            }
+        }
+    }
+}
+void invfwht(vector<int>&a,int n)
+{
+    for(int len=2;len<=n;len<<=1)
+    {
+        for(int i=0;i<n;i+=len)
+        {
+            for(int j=0;j<(len/2);j++)
+            {
+                a[i+j+(len/2)] -= a[i+j];
+            }
+        }
+    }
+}
+vector<int> convolve(vector<int>a,vector<int>b)
+{
+    int n=(int)a.size();
+    fwht(a,n);
+    fwht(b,n);
+    vector<int>res(n,0);
+    for(int i=0;i<n;i++)
+        a[i]=(a[i]*b[i]);
+    invfwht(a,n);
+    for(int i=0;i<n;i++)
+    {
+        res[i]=min(1LL,a[i]);
+    }
+    return res;
+}
+vector<pair<int,int>>g[N];
+int k,n;
+vector<vector<int>> dfs(int node,int par,int parcol,vector<vector<int>>&ans)
+{
+    int sub=1;
+    int tot=(int)(1LL<<k);
+    vector<vector<int>>dp(sub,vector<int>(tot,0LL));
+    dp[0][0]=1;
+    for(auto e:g[node])
+    {
+        if(e.first==par)
             continue;
-        if (!(u & (1 << g[x][i].se)))
-            c[h] = false;
-        else
-            c[h] = true;
-        dfs(h, x, u);
-        for (int i = 0; i <= q[x] + q[h]; ++i)
-            ndp[i] = 0;
-        for (int q1 = 0; q1 <= q[x]; ++q1)
+        vector<vector<int>>dpchild=dfs(e.first,node,e.second,ans);
+        int childsz=(int)dpchild.size();
+        vector<vector<int>>dpnew(sub+childsz,vector<int>(tot,0));
+        for(int take=0;take<sub;take++)
         {
-            for (int q2 = 0; q2 <= q[h]; ++q2)
+            for(int mask=0;mask<(1<<k);mask++)
+                if(dp[take][mask])
+                    dpnew[take][mask|(1<<e.second)]=1;
+            for(int takechild=0;takechild<childsz;takechild++)
             {
-                if (q2)
-                    ndp[q1 + q2] += dp[x][q1] * dp[h][q2];
-                else
-                {
-                    if ((u & (1 << g[x][i].se)))
-                        ndp[q1 + q2] += dp[x][q1];
-                }
+                auto res=convolve(dp[take],dpchild[takechild]);
+                for(int mask=0;mask<tot;mask++)
+                    if(res[mask])
+                        dpnew[take+takechild+1][mask]=1;
             }
         }
-        for (int i = 0; i <= q[x] + q[h]; ++i)
-            dp[x][i] = ndp[i];
-        q[x] += q[h];
+        dp=dpnew;
+        sub += childsz;
     }
+    for(int i=0;i<sub;i++)
+    {
+        for(int mask=0;mask<tot;mask++)
+            if(dp[i][mask])
+            {
+                int nmask=mask;
+                if(parcol!=-1)
+                {
+                    nmask |= (1<<parcol);
+                }
+                ans[i][nmask]=1;
+            }
+    }
+    return dp;
 }
-
-int ans[N][(1 << K)];
-
-void solv()
+void solve()
 {
-    scanf("%d%d", &n, &k);
-    for (int x = 1; x <= n; ++x)
-        g[x].clear();
-    for (int i = 0; i < n - 1; ++i)
+    cin>>n>>k;
+    int mask=(1<<k);
+    for(int i=0;i<n;i++)
+        g[i].clear();
+    for(int i=1;i<n;i++)
     {
-        int x, y, z;
-        scanf("%d%d%d", &x, &y, &z);
-        --z;
-        b[i] = m_p(m_p(x, y), z);
-        g[x].push_back(m_p(y, z));
-        g[y].push_back(m_p(x, z));
+        int x,y,c;
+        cin>>x>>y>>c;
+        x--;
+        y--;
+        c--;
+        g[x].push_back(mp(y,c));
+        g[y].push_back(mp(x,c));
     }
-    for (int u = 0; u < (1 << k); ++u)
+    vector<vector<int>>ans(n,vector<int>(1<<k,0));
+    dfs(0,-1,-1,ans);
+    for(int i=0;i<n;i++)
     {
-        for (int q = 1; q <= n; ++q)
-            ans[q][u] = 0;
-
-        c[1] = true;
-        dfs(1, 1, u);
-        for (int x = 1; x <= n; ++x)
+        for(int m=0;m<(mask);m++)
         {
-            if (c[x])
-            {
-                for (int i = 1; i <= q[x]; ++i)
-                {
-                    ans[i][u] += dp[x][i];
-                }
-            }
-        }
-    }
-
-    /*for (int q = 1; q <= n; ++q)
-    {
-        for (int x = 0; x < (1 << k); ++x)
-        {
-            printf("%d ", ans[q][x]);
-        }
-        printf("\n");
-    }
-    return;*/
-
-    for (int q = 1; q <= n; ++q)
-    {
-        for (int i = 0; i < k; ++i)
-        {
-            for (int x = 0; x < (1 << k); ++x)
-            {
-                if ((x & (1 << i)))
-                    ans[q][x] -= ans[q][(x ^ (1 << i))];
-            }
-        }
-    }
-
-    for (int q = 1; q <= n; ++q)
-    {
-        for (int x = 0; x < (1 << k); ++x)
-        {
-            if (ans[q][x])
-                printf("1");
+            if(ans[i][m])
+                cout<<"1";
             else
-                printf("0");
+                cout<<"0";
         }
-        printf("\n");
+        cout<<"\n";
     }
 }
-
-int main()
+signed main()
 {
-    #ifdef SOMETHING
-    freopen("input.txt", "r", stdin);
-    //freopen("output.txt", "w", stdout);
-    #endif // SOMETHING
-    //ios_base::sync_with_stdio(false), cin.tie(0);
-    int tt;
-    scanf("%d", &tt);
-    while (tt--)
-        solv();
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+    int t=1;
+    cin>>t;
+    while(t--)
+        solve();
     return 0;
 }
-
-//while ((double)clock() / CLOCKS_PER_SEC <= 0.9){}
