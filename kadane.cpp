@@ -20,6 +20,8 @@ int main(){
 	// ans_higher_idx keeps track of the lower index of subarray whose value is added into 'maxi' currently
     // these are initialised to -1 beacause all the elements in the subarray may be negative so we want to 
     // detect that scenario
+// added maxi and sum
+	int maxi = sum;
     double maxi = 0, sum = 0, ans_lower_idx = -1, ans_higher_idx = -1, left_idx = 0 ;
     for(int i = 0; i < n; i++){
         sum += A[i];
